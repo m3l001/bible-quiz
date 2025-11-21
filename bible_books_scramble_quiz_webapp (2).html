@@ -1,0 +1,125 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bible Books Scramble Quiz</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; padding: 0; }
+    h1 { text-align: center; }
+    .container { max-width: 600px; margin: auto; }
+    .input-group { margin-bottom: 10px; }
+    .scramble-item { margin-bottom: 8px; }
+    input[type="text"] { width: 100%; padding: 8px; margin-top: 4px; }
+    button { padding: 10px; margin: 5px 0; width: 100%; }
+    #leaderboard { margin-top: 20px; }
+    @media (max-width: 600px) {
+        body { margin: 10px; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>Bible Books Scramble Quiz</h1>
+    <div class="input-group">
+        <label for="username">Enter your name:</label>
+        <input type="text" id="username" placeholder="Your name">
+    </div>
+    <div id="quiz"></div>
+    <button onclick="checkAnswers()">Check Answers</button>
+    <button onclick="restartQuiz()">Restart</button>
+    <p id="timer">Time: 0s</p>
+    <div id="score"></div>
+    <div id="leaderboard">
+        <h2>Leaderboard</h2>
+        <ol id="leaderboard-list"></ol>
+    </div>
+</div>
+<script>
+const books = [
+    "genesis","exodus","leviticus","numbers","deuteronomy","joshua","judges","ruth","1 samuel","2 samuel","1 kings","2 kings","1 chronicles","2 chronicles","ezra","nehemiah","esther","job","psalms","proverbs","ecclesiastes","song of solomon","isaiah","jeremiah","lamentations","ezekiel","daniel","hosea","joel","amos","obadiah","jonah","micah","nahum","habakkuk","zephaniah","haggai","zechariah","malachi","matthew","mark","luke","john","acts","romans","1 corinthians","2 corinthians","galatians","ephesians","philippians","colossians","1 thessalonians","2 thessalonians","1 timothy","2 timothy","titus","philemon","hebrews","james","1 peter","2 peter","1 john","2 john","3 john","jude","revelation"
+];
+
+let scrambledBooks = [];
+let startTime;
+let timerInterval;
+
+function scrambleWord(word) {
+    const letters = word.replace(/\s+/g, '').split('');
+    for (let i = letters.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [letters[i], letters[j]] = [letters[j], letters[i]];
+    }
+    return letters.join('');
+}
+
+function startQuiz() {
+    scrambledBooks = books.map(book => ({ original: book, scrambled: scrambleWord(book) }));
+    scrambledBooks.sort(() => Math.random() - 0.5);
+    const quizDiv = document.getElementById('quiz');
+    quizDiv.innerHTML = '';
+    scrambledBooks.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'scramble-item';
+        div.innerHTML = `<strong>${index + 1}. ${item.scrambled}</strong><br><input type="text" id="answer-${index}" placeholder="Your answer">`;
+        quizDiv.appendChild(div);
+    });
+    startTime = Date.now();
+    timerInterval = setInterval(updateTimer, 1000);
+}
+
+function updateTimer() {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    document.getElementById('timer').textContent = `Time: ${elapsed}s`;
+}
+
+function checkAnswers() {
+    clearInterval(timerInterval);
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    let score = 0;
+    scrambledBooks.forEach((item, index) => {
+        const userAnswer = document.getElementById(`answer-${index}`).value.trim().toLowerCase();
+        if (userAnswer === item.original) {
+            score++;
+        }
+    });
+    document.getElementById('score').textContent = `Score: ${score} / ${scrambledBooks.length}`;
+    const username = document.getElementById('username').value.trim() || 'Anonymous';
+    updateLeaderboard(username, score, elapsed);
+}
+
+function updateLeaderboard(name, score, time) {
+    let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+    leaderboard.push({ name, score, time });
+    leaderboard.sort((a, b) => b.score - a.score || a.time - b.time);
+    leaderboard = leaderboard.slice(0, 5);
+    localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+    displayLeaderboard(leaderboard);
+}
+
+function displayLeaderboard(leaderboard) {
+    const list = document.getElementById('leaderboard-list');
+    list.innerHTML = '';
+    leaderboard.forEach(entry => {
+        const li = document.createElement('li');
+        li.textContent = `${entry.name} - Score: ${entry.score}, Time: ${entry.time}s`;
+        list.appendChild(li);
+    });
+}
+
+function restartQuiz() {
+    clearInterval(timerInterval);
+    document.getElementById('score').textContent = '';
+    document.getElementById('timer').textContent = 'Time: 0s';
+    startQuiz();
+}
+
+window.onload = () => {
+    startQuiz();
+    const leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+    displayLeaderboard(leaderboard);
+};
+</script>
+</body>
+</html>
